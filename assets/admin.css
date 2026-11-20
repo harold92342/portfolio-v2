@@ -1,4 +1,8 @@
 /* ---------- Admin Layout & Components ---------- */
+[hidden] {
+  display: none !important;
+}
+
 .admin-body {
   min-height: 100vh;
 }
