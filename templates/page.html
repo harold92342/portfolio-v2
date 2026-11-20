@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="{{LANG}}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{TITLE}}</title>
+  <meta name="description" content="{{DESCRIPTION}}">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="{{OG_TITLE}}">
+  <meta property="og:description" content="{{OG_DESCRIPTION}}">
+  <meta property="og:url" content="{{OG_URL}}">
+  <meta property="og:image" content="{{OG_IMAGE}}">
+  <meta property="og:locale" content="{{OG_LOCALE}}">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="{{OG_TITLE}}">
+  <meta name="twitter:description" content="{{OG_DESCRIPTION}}">
+  <meta name="twitter:image" content="{{OG_IMAGE}}">
+  <link rel="alternate" hreflang="en" href="{{ALT_EN_URL}}">
+  <link rel="alternate" hreflang="fr" href="{{ALT_FR_URL}}">
+  <script src="/assets/theme-init.js"></script>
+  <link rel="stylesheet" href="/assets/styles.css">
+</head>
+<body data-lang="{{LANG}}">
+  <a class="skip" href="#main-content">{{SKIP_LABEL}}</a>
+
+  <header class="topbar" id="top">
+    <a href="#top" class="monogram" aria-label="Home">TK</a>
+    <nav aria-label="Primary" id="site-nav"></nav>
+    <a class="lang-switch" id="lang-switch" href="{{SWITCH_HREF}}" data-target-lang="{{SWITCH_TARGET}}">
+      <span aria-hidden="true">{{SWITCH_SHORT}}</span>
+      <span class="lang-full">{{SWITCH_LABEL}}</span>
+    </a>
+    <button type="button" class="theme-toggle" id="theme-toggle" aria-label="Toggle theme"></button>
+  </header>
+
+  <main id="main-content">
+    <section class="hero" id="hero" aria-labelledby="hero-name"></section>
+    <ul class="highlights" id="highlights" aria-label="Highlights"></ul>
+    <section class="section about" id="about" aria-labelledby="about-heading"></section>
+    <section class="section" id="experience" aria-labelledby="experience-heading"></section>
+    <section class="section" id="projects" aria-labelledby="projects-heading"></section>
+    <section class="section" id="skills" aria-labelledby="skills-heading"></section>
+    <section class="section ask" id="assistant" aria-labelledby="chat-heading"></section>
+    <section class="section contact" id="contact" aria-labelledby="contact-heading"></section>
+  </main>
+
+  <footer class="footer" id="site-footer"></footer>
+
+  <button type="button" class="fab is-hidden" id="floating-ask"></button>
+
+  <dialog class="project-modal" id="project-modal" aria-labelledby="modal-title">
+    <article>
+      <button type="button" class="modal-close" id="modal-close" aria-label="Close">
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M6 6l12 12M18 6L6 18" />
+        </svg>
+      </button>
+      <div id="modal-media"></div>
+      <div class="modal-body">
+        <h3 id="modal-title"></h3>
+        <div class="tags" id="modal-tags"></div>
+        <div class="prose" id="modal-details"></div>
+        <div class="modal-actions" id="modal-actions"></div>
+      </div>
+    </article>
+  </dialog>
+
+  <script id="portfolio-data" type="application/json">{{EMBEDDED_JSON}}</script>
+  <script src="/assets/app.js" defer></script>
+  <script src="/assets/chat.js" defer></script>
+</body>
+</html>

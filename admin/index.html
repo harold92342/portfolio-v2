@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Portfolio Admin</title>
+  <script src="/assets/theme-init.js"></script>
+  <link rel="stylesheet" href="/assets/styles.css">
+  <link rel="stylesheet" href="/assets/admin.css">
+</head>
+<body class="admin-body">
+  <!-- Sign-in View -->
+  <main class="admin-login-wrap" id="login-view" hidden>
+    <section class="admin-card login-card" aria-labelledby="login-heading">
+      <div class="login-brand">
+        <span class="monogram" aria-hidden="true">TK</span>
+        <div>
+          <h1 id="login-heading">Portfolio Admin</h1>
+          <p class="admin-muted">Sign in to edit your English &amp; French portfolio content.</p>
+        </div>
+      </div>
+
+      <form id="login-form" class="admin-stack">
+        <label class="field">
+          <span>Admin password</span>
+          <input type="password" id="login-password" name="password" autocomplete="current-password" required autofocus>
+        </label>
+        <p class="admin-error" id="login-error" role="alert" hidden></p>
+        <button type="submit" class="btn btn-primary" id="login-submit">Sign in</button>
+      </form>
+      <p class="login-back"><a href="/">← Back to public site</a></p>
+    </section>
+  </main>
+
+  <!-- Editor Workspace -->
+  <div class="admin-shell" id="editor-view" hidden>
+    <header class="admin-topbar">
+      <div class="admin-topbar-left">
+        <a href="/" class="monogram" aria-label="View public site">TK</a>
+        <div>
+          <h1 class="admin-title">Portfolio Admin</h1>
+          <p class="admin-subtitle" id="save-status">All changes saved</p>
+        </div>
+      </div>
+
+      <div class="admin-lang-toggle" role="group" aria-label="Editing language">
+        <button type="button" class="lang-tab is-active" data-lang="en">English (/)</button>
+        <button type="button" class="lang-tab" data-lang="fr">Français (/fr)</button>
+      </div>
+
+      <div class="admin-topbar-actions">
+        <button type="button" class="btn btn-primary" id="save-btn">Save changes</button>
+        <button type="button" class="btn btn-ghost btn-sm" id="export-btn">Export JSON</button>
+        <button type="button" class="btn btn-ghost btn-sm" id="reset-btn">Reset from files</button>
+        <button type="button" class="btn btn-link btn-sm" id="logout-btn">Sign out</button>
+      </div>
+    </header>
+
+    <div class="admin-banner admin-banner-warn" id="db-warning" role="status" hidden>
+      <strong>Database unavailable:</strong> Content is currently loaded from local profile files. Saving and resetting are disabled until Neon Postgres (`DATABASE_URL`) is connected in Vercel Storage.
+    </div>
+
+    <div class="admin-banner" id="toast-banner" role="status" aria-live="polite" hidden></div>
+
+    <nav class="admin-tabs" role="tablist" aria-label="Content sections" id="admin-tabs">
+      <button type="button" role="tab" class="admin-tab is-active" data-tab="profile" aria-selected="true">Profile</button>
+      <button type="button" role="tab" class="admin-tab" data-tab="experience" aria-selected="false">Experience</button>
+      <button type="button" role="tab" class="admin-tab" data-tab="projects" aria-selected="false">Projects</button>
+      <button type="button" role="tab" class="admin-tab" data-tab="skills" aria-selected="false">Skills</button>
+      <button type="button" role="tab" class="admin-tab" data-tab="credentials" aria-selected="false">Credentials</button>
+      <button type="button" role="tab" class="admin-tab" data-tab="faq" aria-selected="false">FAQ &amp; chatbot</button>
+    </nav>
+
+    <main class="admin-main" id="tab-panel" role="tabpanel"></main>
+  </div>
+
+  <script src="/assets/admin.js" defer></script>
+</body>
+</html>

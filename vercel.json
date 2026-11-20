@@ -1,0 +1,65 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "cleanUrls": false,
+  "trailingSlash": false,
+  "functions": {
+    "api/**/*.js": {
+      "includeFiles": "{content,templates}/**"
+    }
+  },
+  "rewrites": [
+    { "source": "/", "destination": "/api/page?lang=en" },
+    { "source": "/fr", "destination": "/api/page?lang=fr" },
+    { "source": "/fr/", "destination": "/api/page?lang=fr" },
+    { "source": "/admin", "destination": "/admin/index.html" },
+    { "source": "/admin/", "destination": "/admin/index.html" },
+    { "source": "/lib/:path*", "destination": "/__not_found__" },
+    { "source": "/content/:path*", "destination": "/__not_found__" },
+    { "source": "/templates/:path*", "destination": "/__not_found__" },
+    { "source": "/PRD-portfolio-chatbot.md", "destination": "/__not_found__" },
+    { "source": "/tasks.md", "destination": "/__not_found__" },
+    { "source": "/package.json", "destination": "/__not_found__" },
+    { "source": "/package-lock.json", "destination": "/__not_found__" }
+  ],
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "Content-Security-Policy",
+          "value": "default-src 'self'; script-src 'self'; style-src 'self'; style-src-attr 'unsafe-inline'; font-src 'self'; img-src 'self' https: data: blob:; connect-src 'self' https://blob.vercel-storage.com https://*.blob.vercel-storage.com https://vercel.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'"
+        },
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "strict-origin-when-cross-origin"
+        },
+        {
+          "key": "X-Frame-Options",
+          "value": "DENY"
+        }
+      ]
+    },
+    {
+      "source": "/admin/(.*)",
+      "headers": [
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, nofollow"
+        }
+      ]
+    },
+    {
+      "source": "/assets/fonts/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
+      ]
+    }
+  ]
+}

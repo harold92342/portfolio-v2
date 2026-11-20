@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="400" height="400" role="img" aria-label="TK monogram placeholder">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="45%" r="60%">
+      <stop offset="0%" stop-color="#1F6E55"/>
+      <stop offset="65%" stop-color="#0F4D3A"/>
+      <stop offset="100%" stop-color="#0A1713"/>
+    </radialGradient>
+  </defs>
+  <rect width="400" height="400" fill="url(#bg)"/>
+  <circle cx="200" cy="200" r="172" fill="none" stroke="#3C9479" stroke-opacity="0.35" stroke-width="10"/>
+  <circle cx="200" cy="200" r="142" fill="none" stroke="#9CD0BB" stroke-opacity="0.22" stroke-width="4"/>
+  <text x="200" y="224" text-anchor="middle" font-family="Georgia, serif" font-size="116" font-weight="600" letter-spacing="-4" fill="#E2ECE7">TK</text>
+  <rect x="164" y="256" width="72" height="5" rx="2.5" fill="#DC9761"/>
+</svg>
