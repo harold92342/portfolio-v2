@@ -96,13 +96,13 @@
   }
 
   /**
-   * Direct browser-to-Vercel-Blob upload using a short-lived server-issued client token.
+   * Upload file via /api/admin/upload -> Vercel Blob (supports both OIDC BLOB_STORE_ID and token auth).
    */
   async function uploadAsset(file, kind) {
     const isPdf = kind === 'resume';
     const allowedTypes = isPdf ? ALLOWED_PDF_TYPES : ALLOWED_IMAGE_TYPES;
-    const maxBytes = isPdf ? MAX_PDF_BYTES : MAX_IMAGE_BYTES;
-    const maxLabel = isPdf ? '5 MB PDF' : '4 MB JPG, PNG, or WebP';
+    const maxBytes = isPdf ? Math.min(MAX_PDF_BYTES, 4.4 * 1024 * 1024) : MAX_IMAGE_BYTES;
+    const maxLabel = isPdf ? '4.4 MB PDF' : '4 MB JPG, PNG, or WebP';
 
     if (!allowedTypes.includes(file.type)) {
       throw new Error(`Unsupported file type (${file.type || 'unknown'}). Allowed: ${maxLabel}.`);
@@ -111,39 +111,23 @@
       throw new Error(`File is too large (${(file.size / (1024 * 1024)).toFixed(1)} MB). Maximum allowed: ${maxLabel}.`);
     }
 
-    const tokenRes = await fetch('/api/admin/upload', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        kind,
-        filename: file.name,
-        contentType: file.type,
-        size: file.size,
-      }),
+    const params = new URLSearchParams({
+      kind,
+      filename: file.name || 'upload',
     });
 
-    const tokenData = await tokenRes.json().catch(() => ({}));
-    if (!tokenRes.ok) {
-      throw new Error(tokenData.error || 'Could not authorize upload.');
-    }
-
-    const blobRes = await fetch(tokenData.uploadUrl, {
-      method: 'PUT',
+    const res = await fetch(`/api/admin/upload?${params.toString()}`, {
+      method: 'POST',
       headers: {
-        authorization: `Bearer ${tokenData.clientToken}`,
-        'x-api-version': tokenData.apiVersion || '9',
-        'x-content-type': file.type,
-        'x-add-random-suffix': '1',
+        'Content-Type': file.type,
       },
       body: file,
     });
 
-    if (!blobRes.ok) {
-      const errText = await blobRes.text().catch(() => '');
-      throw new Error(errText || 'Upload to Vercel Blob failed.');
+    const uploaded = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      throw new Error(uploaded.error || `Upload failed (HTTP ${res.status}).`);
     }
-
-    const uploaded = await blobRes.json();
     if (!uploaded?.url) {
       throw new Error('Upload succeeded but returned no URL.');
     }

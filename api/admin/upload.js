@@ -1,10 +1,16 @@
-import { generateClientTokenFromReadWriteToken } from '@vercel/blob/client';
+import { put } from '@vercel/blob';
 import { requireAdmin } from '../../lib/auth.js';
+
+export const config = {
+  api: {
+    bodyParser: false,
+  },
+};
 
 const IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 const PDF_TYPES = ['application/pdf'];
 const MAX_IMAGE_BYTES = 4 * 1024 * 1024; // 4 MB (PRD §7.3)
-const MAX_PDF_BYTES = 5 * 1024 * 1024;   // 5 MB (PRD §7.3)
+const MAX_PDF_BYTES = 4.4 * 1024 * 1024; // ~4.4 MB (within Vercel Function body limit)
 
 const RULES = {
   photo: {
@@ -24,19 +30,11 @@ const RULES = {
   resume: {
     allowedContentTypes: PDF_TYPES,
     maximumSizeInBytes: MAX_PDF_BYTES,
-    label: 'Resume must be a PDF file and 5 MB or smaller.',
+    label: 'Resume must be a PDF file and 4.4 MB or smaller.',
     prefix: 'uploads/resume',
     allowedExts: ['.pdf'],
   },
 };
-
-async function parseJsonBody(req) {
-  if (req.body && typeof req.body === 'object') return req.body;
-  const chunks = [];
-  for await (const chunk of req) chunks.push(chunk);
-  const raw = Buffer.concat(chunks).toString('utf8');
-  return raw ? JSON.parse(raw) : {};
-}
 
 function sanitizeFilename(filename, allowedExts) {
   const base = String(filename || 'file').split(/[\\/]/).pop() || 'file';
@@ -49,6 +47,23 @@ function sanitizeFilename(filename, allowedExts) {
     .replace(/(^-|-$)/g, '')
     .slice(0, 48) || 'asset';
   return `${stem}${ext}`;
+}
+
+async function readBinaryBody(req, maxBytes) {
+  if (Buffer.isBuffer(req.body)) {
+    if (req.body.length > maxBytes) throw new Error('TOO_LARGE');
+    return req.body;
+  }
+  const chunks = [];
+  let total = 0;
+  for await (const chunk of req) {
+    total += chunk.length;
+    if (total > maxBytes) {
+      throw new Error('TOO_LARGE');
+    }
+    chunks.push(chunk);
+  }
+  return Buffer.concat(chunks);
 }
 
 export default async function handler(req, res) {
@@ -64,39 +79,33 @@ export default async function handler(req, res) {
     return res.status(auth.status).json({ error: auth.error });
   }
 
-  const blobToken = (process.env.BLOB_READ_WRITE_TOKEN || '').trim();
-  if (!blobToken) {
+  const hasBlobConfig = Boolean(
+    (process.env.BLOB_READ_WRITE_TOKEN || '').trim() ||
+    (process.env.BLOB_STORE_ID || '').trim(),
+  );
+  if (!hasBlobConfig) {
     return res.status(503).json({
-      error: 'Uploads are not configured yet. Connect a Vercel Blob store in Vercel Storage.',
+      error: 'Uploads are not configured yet. Connect a Public Vercel Blob store in Vercel Storage.',
     });
   }
 
-  let body;
-  try {
-    body = await parseJsonBody(req);
-  } catch {
-    return res.status(400).json({ error: 'Invalid request body.' });
-  }
-
-  const kind = String(body?.kind || '').toLowerCase();
+  const kind = String(req.query?.kind || req.headers['x-upload-kind'] || '').toLowerCase();
   const rule = RULES[kind];
   if (!rule) {
     return res.status(400).json({ error: 'Invalid upload kind. Expected photo, thumbnail, or resume.' });
   }
 
-  const contentType = String(body?.contentType || '').toLowerCase().trim();
-  const size = Number(body?.size || 0);
-  const filename = String(body?.filename || '');
+  const contentType = String(req.headers['content-type'] || '')
+    .split(';')[0]
+    .toLowerCase()
+    .trim();
+  const filename = String(req.query?.filename || req.headers['x-upload-filename'] || '');
 
   if (!rule.allowedContentTypes.includes(contentType)) {
     return res.status(400).json({ error: rule.label });
   }
 
-  if (!Number.isFinite(size) || size <= 0 || size > rule.maximumSizeInBytes) {
-    return res.status(400).json({ error: rule.label });
-  }
-
-  // Also reject suspicious extensions even if a client spoofs MIME type
+  // Reject disallowed extensions even if MIME type is spoofed
   const dotIdx = filename.lastIndexOf('.');
   if (dotIdx !== -1) {
     const ext = filename.slice(dotIdx).toLowerCase();
@@ -105,27 +114,38 @@ export default async function handler(req, res) {
     }
   }
 
+  let buffer;
+  try {
+    buffer = await readBinaryBody(req, rule.maximumSizeInBytes);
+  } catch (err) {
+    if (err?.message === 'TOO_LARGE') {
+      return res.status(400).json({ error: rule.label });
+    }
+    return res.status(400).json({ error: 'Could not read uploaded file.' });
+  }
+
+  if (!buffer || buffer.length === 0) {
+    return res.status(400).json({ error: 'Uploaded file is empty.' });
+  }
+
   const safeName = sanitizeFilename(filename, rule.allowedExts);
   const pathname = `${rule.prefix}-${Date.now()}-${safeName}`;
 
   try {
-    const clientToken = await generateClientTokenFromReadWriteToken({
-      token: blobToken,
-      pathname,
-      allowedContentTypes: rule.allowedContentTypes,
-      maximumSizeInBytes: rule.maximumSizeInBytes,
+    const blob = await put(pathname, buffer, {
+      access: 'public',
+      contentType,
       addRandomSuffix: true,
-      validUntil: Date.now() + 5 * 60 * 1000, // 5-minute short-lived upload token
     });
 
     return res.status(200).json({
-      clientToken,
-      pathname,
-      uploadUrl: `https://blob.vercel-storage.com/${pathname}`,
-      apiVersion: '9',
+      url: blob.url,
+      pathname: blob.pathname,
     });
   } catch (err) {
-    console.error('[api/admin/upload] Token generation failed:', err?.message || err);
-    return res.status(500).json({ error: 'Could not prepare file upload.' });
+    console.error('[api/admin/upload] Vercel Blob put failed:', err?.message || err);
+    return res.status(500).json({
+      error: err?.message || 'Upload to Vercel Blob failed.',
+    });
   }
 }
