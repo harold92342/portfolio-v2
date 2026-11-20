@@ -56,6 +56,52 @@ async function parseJsonBody(req) {
   return raw ? JSON.parse(raw) : {};
 }
 
+const FALLBACK_MODELS = [
+  'llama-3.3-70b-versatile',
+  'openai/gpt-oss-120b',
+  'meta-llama/llama-4-scout-17b-16e-instruct',
+  'openai/gpt-oss-20b',
+  'llama-3.1-8b-instant',
+];
+
+let cachedWorkingModel = null;
+
+async function callGroq(apiKey, model, payloadMessages) {
+  return fetch(GROQ_ENDPOINT, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model,
+      messages: payloadMessages,
+      temperature: 0.3,
+      max_tokens: 400,
+      stream: true,
+    }),
+  });
+}
+
+async function discoverGroqChatModel(apiKey) {
+  try {
+    const res = await fetch('https://api.groq.com/openai/v1/models', {
+      headers: { Authorization: `Bearer ${apiKey}` },
+    });
+    if (!res.ok) return null;
+    const json = await res.json();
+    const ids = (json?.data || [])
+      .map((m) => m.id)
+      .filter((id) => typeof id === 'string' && !/whisper|tts|guard|embed|moderation/i.test(id));
+    for (const preferred of FALLBACK_MODELS) {
+      if (ids.includes(preferred)) return preferred;
+    }
+    return ids[0] || null;
+  } catch {
+    return null;
+  }
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     res.setHeader('Allow', 'POST');
@@ -95,26 +141,25 @@ export default async function handler(req, res) {
     return res.status(200).send(friendlyMessage('no-key', lang, email));
   }
 
-  const model = (process.env.GROQ_MODEL || DEFAULT_GROQ_MODEL).trim();
+  const configuredModel = (process.env.GROQ_MODEL || '').trim();
+  const primaryModel = configuredModel || cachedWorkingModel || DEFAULT_GROQ_MODEL;
   const siteUrl = getSiteOrigin(req);
   const systemPrompt = buildSystemPrompt(content, siteUrl, lang);
+  const payloadMessages = [{ role: 'system', content: systemPrompt }, ...messages];
 
   let groqRes;
   try {
-    groqRes = await fetch(GROQ_ENDPOINT, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model,
-        messages: [{ role: 'system', content: systemPrompt }, ...messages],
-        temperature: 0.3,
-        max_tokens: 400,
-        stream: true,
-      }),
-    });
+    groqRes = await callGroq(apiKey, primaryModel, payloadMessages);
+    if (groqRes.status === 404) {
+      const discovered = await discoverGroqChatModel(apiKey);
+      if (discovered && discovered !== primaryModel) {
+        console.warn('[api/chat] Falling back from', primaryModel, 'to discovered model:', discovered);
+        groqRes = await callGroq(apiKey, discovered, payloadMessages);
+        if (groqRes.ok) cachedWorkingModel = discovered;
+      }
+    } else if (groqRes.ok && !configuredModel) {
+      cachedWorkingModel = primaryModel;
+    }
   } catch (err) {
     console.error('[api/chat] Network error calling Groq:', err?.message || err);
     res.setHeader('Content-Type', 'text/plain; charset=utf-8');
