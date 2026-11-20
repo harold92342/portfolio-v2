@@ -642,7 +642,14 @@
       return;
     }
     if (!res.ok) {
-      showToast('Could not load content from server.', 'error');
+      const errData = await res.json().catch(() => ({}));
+      const msg = errData.error || `Could not load content from server (HTTP ${res.status}).`;
+      if (editorView && editorView.hidden && loginError) {
+        loginError.textContent = msg;
+        loginError.hidden = false;
+      } else {
+        showToast(msg, 'error');
+      }
       return;
     }
     const payload = await res.json();
