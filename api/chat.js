@@ -123,7 +123,8 @@ export default async function handler(req, res) {
 
   if (!groqRes.ok || !groqRes.body) {
     const status = groqRes.status;
-    console.error('[api/chat] Groq API error status:', status);
+    const errBody = await groqRes.text().catch(() => '');
+    console.error('[api/chat] Groq API error:', status, errBody.slice(0, 300));
     res.setHeader('Content-Type', 'text/plain; charset=utf-8');
     if (status === 429) {
       return res.status(429).send(friendlyMessage('rate-limit', lang, email));
