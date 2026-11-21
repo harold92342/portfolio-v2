@@ -267,10 +267,13 @@
     const mediaCard = el('section', { class: 'admin-card admin-stack' },
       el('h2', { text: 'Photo & Resume' }),
       makeAssetField({
-        label: 'Profile photo (JPG, PNG, WebP up to 4 MB — cropped to a circle on the site)',
+        label: 'Profile photo — shared across English & French (JPG, PNG, WebP up to 4 MB)',
         kind: 'photo',
         value: p.photo,
-        onChange: (v) => { p.photo = v; },
+        onChange: (v) => {
+          if (state.data?.en?.profile) state.data.en.profile.photo = v;
+          if (state.data?.fr?.profile) state.data.fr.profile.photo = v;
+        },
         accept: 'image/jpeg,image/png,image/webp',
         previewType: 'avatar',
       }),
